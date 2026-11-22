@@ -24,7 +24,7 @@ Full-stack task management application.
 ## Project Status
 
 - [x] Frontend development
-- [ ] Backend development
+- [x] Backend development
 - [ ] PostgreSQL integration
 - [ ] Docker configuration
 - [ ] Nginx configuration
