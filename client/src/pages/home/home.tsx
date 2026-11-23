@@ -1,14 +1,19 @@
 import { Link } from "react-router-dom";
 
 import { StatCard, PageHeader, TASK_ROW_GRID, TaskRow } from "@/components";
-import { MOCK_TASKS, ROUTES } from "@/constants";
+import { ROUTES } from "@/constants";
+import { useTasksQuery } from "@/libs/react-query";
 import { getTaskCounts } from "@/utils";
 
 const createTaskLinkClass =
   "inline-flex items-center justify-center rounded-xl bg-linear-to-br from-violet-600 to-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-300 active:translate-y-0";
 
 export const Home = () => {
-  const counts = getTaskCounts(MOCK_TASKS);
+  const { data: tasks = [], isLoading, isError } = useTasksQuery();
+
+  const counts = getTaskCounts(tasks);
+
+  const recentTasks = [...tasks].sort((a, b) => b.id - a.id).slice(0, 5);
 
   return (
     <div className="mx-auto w-full max-w-360 space-y-8 lg:space-y-10">
@@ -22,7 +27,6 @@ export const Home = () => {
         }
       />
 
-      {/* Statistics */}
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:gap-6 xl:grid-cols-4">
         <StatCard
           title="Total tasks"
@@ -57,7 +61,6 @@ export const Home = () => {
         />
       </section>
 
-      {/* Recent tasks */}
       <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 px-6 py-6 sm:px-8">
           <div>
@@ -86,9 +89,21 @@ export const Home = () => {
         </div>
 
         <div>
-          {MOCK_TASKS.map((task) => (
-            <TaskRow key={task.id} task={task} />
-          ))}
+          {isLoading ? (
+            <p className="px-6 py-8 text-center text-sm text-gray-500">
+              Loading tasks...
+            </p>
+          ) : isError ? (
+            <p className="px-6 py-8 text-center text-sm text-red-500">
+              Failed to load tasks. Please try again.
+            </p>
+          ) : recentTasks.length === 0 ? (
+            <p className="px-6 py-8 text-center text-sm text-gray-500">
+              No tasks yet. Create your first task.
+            </p>
+          ) : (
+            recentTasks.map((task) => <TaskRow key={task.id} task={task} />)
+          )}
         </div>
       </section>
     </div>

@@ -1,11 +1,34 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { NAVIGATION, ROUTES } from "@/constants";
+import { useAuth } from "@/contexts";
+import { useLogoutMutation } from "@/libs/react-query";
 
 export const Header = () => {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  const { user } = useAuth();
+  const logoutMutation = useLogoutMutation();
 
   const current = NAVIGATION.find((item) => item.to === pathname);
+
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        navigate("/login", { replace: true });
+      },
+    });
+  };
+
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "U";
 
   return (
     <header className="sticky top-0 z-20 border-b border-gray-100 bg-white shadow-sm">
@@ -52,24 +75,40 @@ export const Header = () => {
               <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
               <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
             </svg>
+
             <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
           </button>
 
           {/* Profile */}
           <div className="flex items-center gap-3 border-l border-gray-100 pl-4 sm:pl-6">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-indigo-600 font-semibold text-white shadow-md shadow-violet-200">
-              JD
+              {initials}
             </div>
 
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-gray-900">John Doe</p>
-              <p className="mt-0.5 text-xs text-gray-400">Administrator</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {user?.name ?? "User"}
+              </p>
+
+              <p className="mt-0.5 text-xs text-gray-400">
+                {user?.email ?? ""}
+              </p>
             </div>
           </div>
+
+          {/* Logout */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={logoutMutation.isPending}
+            className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {logoutMutation.isPending ? "Logging out..." : "Logout"}
+          </button>
         </div>
       </div>
 
-      {/* Навигация для экранов без сайдбара */}
+      {/* Mobile navigation */}
       <nav className="flex gap-2 overflow-x-auto border-t border-gray-100 px-4 py-3 sm:px-6 lg:hidden">
         {NAVIGATION.map((item) => (
           <NavLink

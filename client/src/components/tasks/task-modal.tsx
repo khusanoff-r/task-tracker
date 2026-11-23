@@ -1,33 +1,48 @@
 import { useState, type FormEvent } from "react";
 
-import { FIELD_CLASS, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/constants";
+import {
+  FIELD_CLASS,
+  TASK_PRIORITY_LABELS,
+  TASK_STATUS_LABELS,
+} from "@/constants";
+
 import type { Task, TaskPriority, TaskStatus } from "@/types";
+import type { TaskInput } from "@/libs/actions";
 
 import { Button, FormField, Modal } from "../ui";
 
 type TaskModalProps = {
   task?: Task | null;
   onClose: () => void;
-  onSave: (task: Task) => void;
+  onSave: (task: TaskInput) => void;
+  isSaving?: boolean;
 };
 
 const statusOptions = Object.keys(TASK_STATUS_LABELS) as TaskStatus[];
+
 const priorityOptions = Object.keys(TASK_PRIORITY_LABELS) as TaskPriority[];
 
-export const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
+export const TaskModal = ({
+  task,
+  onClose,
+  onSave,
+  isSaving = false,
+}: TaskModalProps) => {
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
+
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? "todo");
+
   const [priority, setPriority] = useState<TaskPriority>(
     task?.priority ?? "medium",
   );
+
   const [dueDate, setDueDate] = useState(task?.dueDate ?? "");
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     onSave({
-      id: task?.id ?? Date.now(),
       title: title.trim(),
       description: description.trim(),
       status,
@@ -118,12 +133,15 @@ export const TaskModal = ({ task, onClose, onSave }: TaskModalProps) => {
         </FormField>
 
         <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-end">
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
 
-          <Button type="submit" disabled={!title.trim() || !dueDate}>
-            {task ? "Save Changes" : "Create Task"}
+          <Button
+            type="submit"
+            disabled={!title.trim() || !dueDate || isSaving}
+          >
+            {isSaving ? "Saving..." : task ? "Save Changes" : "Create Task"}
           </Button>
         </div>
       </form>

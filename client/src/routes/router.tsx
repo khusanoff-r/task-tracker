@@ -3,6 +3,8 @@ import { createBrowserRouter } from "react-router-dom";
 import { MainLayout } from "@/layout";
 
 import { routes } from "./routes";
+import { ProtectedRoute } from "./protected.route";
+import { PublicRoute } from "./public.route";
 
 const NotFound = () => (
   <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
@@ -11,14 +13,28 @@ const NotFound = () => (
   </div>
 );
 
-const filteredRoutes = routes.map(({ path, element }) => ({
-  path,
-  errorElement: (
-    <MainLayout>
-      <NotFound />
-    </MainLayout>
-  ),
-  element: <MainLayout>{element}</MainLayout>,
-}));
-
-export const router = createBrowserRouter(filteredRoutes);
+export const router = createBrowserRouter([
+  {
+    element: <PublicRoute />,
+    children: routes.public.map(({ path, element }) => ({
+      path,
+      element,
+    })),
+  },
+  {
+    element: <ProtectedRoute />,
+    children: routes.private.map(({ path, element }) => ({
+      path,
+      errorElement: (
+        <MainLayout>
+          <NotFound />
+        </MainLayout>
+      ),
+      element: <MainLayout>{element}</MainLayout>,
+    })),
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
+]);
