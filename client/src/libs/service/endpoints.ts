@@ -12,4 +12,11 @@ export const ENDPOINTS = {
     update: (id: number) => `/tasks/${id}`,
     delete: (id: number) => `/tasks/${id}`,
   },
+  projects: {
+    getAll: "/projects",
+    getById: (id: number) => `/projects/${id}`,
+    create: "/projects",
+    update: (id: number) => `/projects/${id}`,
+    delete: (id: number) => `/projects/${id}`,
+  },
 } as const;

@@ -14,3 +14,11 @@ export {
   useUpdateTaskMutation,
   useDeleteTaskMutation,
 } from "./task.queries";
+
+export {
+  useProjectsQuery,
+  useProjectByIdQuery,
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation,
+} from "./project.queries";

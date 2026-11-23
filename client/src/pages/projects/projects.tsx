@@ -8,14 +8,29 @@ import {
   ProjectCard,
   ProjectModal,
 } from "@/components";
-import { MOCK_PROJECTS } from "@/constants";
+
+import {
+  useProjectsQuery,
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation,
+} from "@/libs/react-query";
+
 import type { Project } from "@/types";
+import type { ProjectFormData } from "@/components/projects/project-modal";
 
 export const Projects = () => {
-  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+
+  const { data: projects = [], isLoading, isError } = useProjectsQuery();
+
+  const createProject = useCreateProjectMutation();
+  const updateProject = useUpdateProjectMutation();
+  const deleteProject = useDeleteProjectMutation();
+
+  const isSaving = createProject.isPending || updateProject.isPending;
 
   const stats = useMemo(
     () => [
@@ -50,30 +65,51 @@ export const Projects = () => {
     setSelectedProject(null);
   };
 
-  const handleSave = (updatedProject: Project) => {
-    setProjects((previousProjects) => {
-      const exists = previousProjects.some(
-        (project) => project.id === updatedProject.id,
-      );
+  const handleSave = async (data: ProjectFormData) => {
+    try {
+      if (selectedProject) {
+        await updateProject.mutateAsync({
+          id: selectedProject.id,
+          data,
+        });
+      } else {
+        await createProject.mutateAsync(data);
+      }
 
-      return exists
-        ? previousProjects.map((project) =>
-            project.id === updatedProject.id ? updatedProject : project,
-          )
-        : [updatedProject, ...previousProjects];
-    });
-
-    closeModal();
+      closeModal();
+    } catch (error) {
+      console.error("Failed to save project:", error);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!projectToDelete) return;
 
-    setProjects((previousProjects) =>
-      previousProjects.filter((project) => project.id !== projectToDelete.id),
-    );
-    setProjectToDelete(null);
+    try {
+      await deleteProject.mutateAsync(projectToDelete.id);
+      setProjectToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <section className="mx-auto w-full max-w-360">
+        <p className="py-10 text-center text-gray-500">Loading projects...</p>
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section className="mx-auto w-full max-w-360">
+        <p className="py-10 text-center text-red-500">
+          Failed to load projects. Please try again.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto w-full max-w-360 space-y-8">
@@ -139,6 +175,7 @@ export const Projects = () => {
           project={selectedProject}
           onClose={closeModal}
           onSave={handleSave}
+          isSaving={isSaving}
         />
       )}
 
@@ -146,7 +183,9 @@ export const Projects = () => {
         <ConfirmDialog
           title="Delete project?"
           message={`Are you sure you want to delete "${projectToDelete.name}"? This action cannot be undone.`}
-          confirmLabel="Delete Project"
+          confirmLabel={
+            deleteProject.isPending ? "Deleting..." : "Delete Project"
+          }
           onConfirm={handleDelete}
           onCancel={() => setProjectToDelete(null)}
         />

@@ -1,8 +1,15 @@
 import { useMemo, useState } from "react";
 
-import { MOCK_PROJECTS } from "@/constants";
 import { ProjectModal } from "@/components";
 import type { Project, ProjectStatus } from "@/types";
+import type { ProjectFormData } from "@/components/projects/project-modal";
+
+import {
+  useProjectsQuery,
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation,
+} from "@/libs/react-query";
 
 const statusLabels: Record<ProjectStatus, string> = {
   active: "Active",
@@ -53,7 +60,6 @@ const ProjectCard = ({ project, onEdit, onDelete }: ProjectCardProps) => {
           <span className="text-xs font-medium text-gray-500">
             Project progress
           </span>
-
           <span className="text-xs font-bold text-violet-600">{progress}%</span>
         </div>
 
@@ -96,10 +102,17 @@ const ProjectCard = ({ project, onEdit, onDelete }: ProjectCardProps) => {
 };
 
 export const Projects = () => {
-  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+
+  const { data: projects = [], isLoading, isError } = useProjectsQuery();
+
+  const createProject = useCreateProjectMutation();
+  const updateProject = useUpdateProjectMutation();
+  const deleteProject = useDeleteProjectMutation();
+
+  const isSaving = createProject.isPending || updateProject.isPending;
 
   const stats = useMemo(
     () => ({
@@ -121,38 +134,59 @@ export const Projects = () => {
     setIsModalOpen(true);
   };
 
-  const handleSave = (updatedProject: Project) => {
-    setProjects((previousProjects) => {
-      const exists = previousProjects.some(
-        (project) => project.id === updatedProject.id,
-      );
-
-      if (exists) {
-        return previousProjects.map((project) =>
-          project.id === updatedProject.id ? updatedProject : project,
-        );
-      }
-
-      return [updatedProject, ...previousProjects];
-    });
-
+  const closeModal = () => {
     setIsModalOpen(false);
     setSelectedProject(null);
   };
 
-  const handleDelete = () => {
+  const handleSave = async (data: ProjectFormData) => {
+    try {
+      if (selectedProject) {
+        await updateProject.mutateAsync({
+          id: selectedProject.id,
+          data,
+        });
+      } else {
+        await createProject.mutateAsync(data);
+      }
+
+      closeModal();
+    } catch (error) {
+      console.error("Failed to save project:", error);
+    }
+  };
+
+  const handleDelete = async () => {
     if (!projectToDelete) return;
 
-    setProjects((previousProjects) =>
-      previousProjects.filter((project) => project.id !== projectToDelete.id),
-    );
-
-    setProjectToDelete(null);
+    try {
+      await deleteProject.mutateAsync(projectToDelete.id);
+      setProjectToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <section className="mx-auto w-full max-w-360">
+        <p className="py-10 text-center text-gray-500">Loading projects...</p>
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section className="mx-auto w-full max-w-360">
+        <p className="py-10 text-center text-red-500">
+          Failed to load projects. Please try again.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto w-full max-w-360">
-      {/* Page heading */}
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
@@ -171,7 +205,6 @@ export const Projects = () => {
         </button>
       </div>
 
-      {/* Statistics */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
           { label: "Total Projects", value: stats.total, icon: "▦" },
@@ -194,7 +227,6 @@ export const Projects = () => {
         ))}
       </div>
 
-      {/* Projects heading */}
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-gray-900">All Projects</h2>
         <p className="mt-1 text-sm text-gray-400">
@@ -202,7 +234,6 @@ export const Projects = () => {
         </p>
       </div>
 
-      {/* Project cards */}
       {projects.length > 0 ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
           {projects.map((project) => (
@@ -238,20 +269,16 @@ export const Projects = () => {
         </div>
       )}
 
-      {/* Create / Edit modal */}
       {isModalOpen && (
         <ProjectModal
           key={selectedProject?.id ?? "new-project"}
           project={selectedProject}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedProject(null);
-          }}
+          onClose={closeModal}
           onSave={handleSave}
+          isSaving={isSaving}
         />
       )}
 
-      {/* Delete confirmation */}
       {projectToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div
@@ -284,9 +311,10 @@ export const Projects = () => {
               <button
                 type="button"
                 onClick={handleDelete}
-                className="rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600"
+                disabled={deleteProject.isPending}
+                className="rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50"
               >
-                Delete Project
+                {deleteProject.isPending ? "Deleting..." : "Delete Project"}
               </button>
             </div>
           </div>

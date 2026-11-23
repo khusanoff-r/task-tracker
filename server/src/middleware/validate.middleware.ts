@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 
 import { isValidTask } from "../validators/task.validator";
+import { isValidProject } from "../validators/project.validator";
 import {
   isValidRegisterData,
   isValidLoginData,
@@ -15,6 +16,21 @@ export const validateTask = (
     return res.status(400).json({
       status: "error",
       message: "Invalid task data",
+    });
+  }
+
+  next();
+};
+
+export const validateProject = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (!isValidProject(req.body)) {
+    return res.status(400).json({
+      status: "error",
+      message: "Invalid project data",
     });
   }
 

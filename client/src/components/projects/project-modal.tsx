@@ -5,10 +5,17 @@ import type { Project, ProjectStatus } from "@/types";
 
 import { Button, FormField, Modal } from "../ui";
 
+export type ProjectFormData = {
+  name: string;
+  description: string;
+  status: ProjectStatus;
+};
+
 type ProjectModalProps = {
   project?: Project | null;
   onClose: () => void;
-  onSave: (project: Project) => void;
+  onSave: (data: ProjectFormData) => void;
+  isSaving?: boolean;
 };
 
 const statusOptions = Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[];
@@ -17,6 +24,7 @@ export const ProjectModal = ({
   project,
   onClose,
   onSave,
+  isSaving = false,
 }: ProjectModalProps) => {
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
@@ -28,13 +36,9 @@ export const ProjectModal = ({
     event.preventDefault();
 
     onSave({
-      id: project?.id ?? Date.now(),
       name: name.trim(),
       description: description.trim(),
       status,
-      taskCount: project?.taskCount ?? 0,
-      completedTasks: project?.completedTasks ?? 0,
-      createdAt: project?.createdAt ?? new Date().toISOString().slice(0, 10),
     });
   };
 
@@ -54,7 +58,7 @@ export const ProjectModal = ({
             id="project-name"
             type="text"
             required
-            maxLength={80}
+            maxLength={150}
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Enter project name"
@@ -90,12 +94,16 @@ export const ProjectModal = ({
         </FormField>
 
         <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-end">
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
 
-          <Button type="submit" disabled={!name.trim()}>
-            {project ? "Save Changes" : "Create Project"}
+          <Button type="submit" disabled={!name.trim() || isSaving}>
+            {isSaving
+              ? "Saving..."
+              : project
+                ? "Save Changes"
+                : "Create Project"}
           </Button>
         </div>
       </form>
